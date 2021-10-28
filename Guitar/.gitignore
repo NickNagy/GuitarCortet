@@ -1,0 +1,8 @@
+/Debug/
+/Drivers/
+/Core/Startup/
+/.settings/
+*.cproject
+*.mxproject
+*.ld
+*.launch
