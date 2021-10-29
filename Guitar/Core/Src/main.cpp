@@ -20,6 +20,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "magna_dsp.h"
 #include <stdlib.h>
 
 /* Private includes ----------------------------------------------------------*/
@@ -53,12 +54,18 @@ TIM_HandleTypeDef htim6;
 /* USER CODE BEGIN PV */
 #define BUFFER_LEN 256
 #define DATA_SIZE BUFFER_LEN>>1
-#define FIR_N 5
+#define PROCESS_CONVHALFCOMPL 1
+#define PROCESS_CONVCOMPL 2
+
 uint16_t adcBuffer[BUFFER_LEN] = {0};
 uint16_t dacBuffer[BUFFER_LEN] = {0};
 static volatile uint16_t * inBufPtr;
 static volatile uint16_t * outBufPtr;
+
 volatile uint8_t processReady = 0;
+
+#define FIR_WINDOW_SIZE 4
+magna::FIR<uint16_t> fir(FIR_WINDOW_SIZE);
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -76,20 +83,10 @@ void processDSP();
 /* USER CODE BEGIN 0 */
 
 void processDSP() {
-	/*uint16_t * zRegPtr;
-	if (inbufPtr == &adcBuffer[0]) {
-		zRegPtr = &FIR_ZRegs[0];
-	} else {
-		zRegPtr = &FIR_zRegs[FIR_N];
-	}
 	for (int i = 0; i < DATA_SIZE; i++) {
-		int sum =
-	}*/
-	for (int i = 0; i < DATA_SIZE; i++) {
-		outBufPtr[i] = inBufPtr[i];
+		outBufPtr[i] = inBufPtr[i];//fir.process(inBufPtr[i], outBufPtr[i]);
 	}
 	processReady = 0;
-	//inBufPtr = NULL;
 }
 /* USER CODE END 0 */
 
@@ -130,8 +127,6 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim6);
   HAL_ADC_Start_DMA(&hadc3, (uint32_t*)&adcBuffer, BUFFER_LEN);
   HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t*)&dacBuffer, BUFFER_LEN, DAC_ALIGN_12B_R);
-
-  uint16_t * FIR_zRegs = (uint16_t*)malloc(2*FIR_N*sizeof(uint16_t));
   /* USER CODE END 2 */
 
 
@@ -147,7 +142,6 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
   }
-  free(FIR_zRegs);
   /* USER CODE END 3 */
 }
 
@@ -163,7 +157,7 @@ void SystemClock_Config(void)
   /** Configure the main internal regulator output voltage
   */
   __HAL_RCC_PWR_CLK_ENABLE();
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE3);
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
   /** Initializes the CPU, AHB and APB busses clocks
   */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
@@ -171,7 +165,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-  RCC_OscInitStruct.PLL.PLLM = 16;
+  RCC_OscInitStruct.PLL.PLLM = 8;
   RCC_OscInitStruct.PLL.PLLN = 192;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 2;
@@ -190,11 +184,11 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV2;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV8;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV8;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_6) != HAL_OK)
   {
     Error_Handler();
   }
@@ -393,14 +387,14 @@ void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc) {
 	// when ADC is processing first half of buffer, DAC is processing second half and vice versa
 	inBufPtr = &adcBuffer[0];
 	outBufPtr = &dacBuffer[DATA_SIZE];//BUFFER_LEN>>1];
-	processReady = 1;
+	processReady = 1;//PROCESS_CONVHALFCOMPL;
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
 	// copy second halves of buffers
 	inBufPtr = &adcBuffer[DATA_SIZE];//BUFFER_LEN>>1];
 	outBufPtr = &dacBuffer[0];
-	processReady = 1;
+	processReady = 1;//PROCESS_CONVCOMPL;
 }
 
 }
