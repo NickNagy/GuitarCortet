@@ -65,7 +65,8 @@ static volatile uint16_t * outBufPtr;
 volatile uint8_t processReady = 0;
 
 #define FIR_WINDOW_SIZE 4
-magna::FIR<uint16_t> fir(FIR_WINDOW_SIZE);
+//magna::FIR_LPF<uint16_t> lpf(FIR_WINDOW_SIZE);
+magna::FIR_CombFilter<uint16_t> comb(48000, 800, 1.0f, 0.8f);
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -84,7 +85,7 @@ void processDSP();
 
 void processDSP() {
 	for (int i = 0; i < DATA_SIZE; i++) {
-		outBufPtr[i] = inBufPtr[i];//fir.process(inBufPtr[i], outBufPtr[i]);
+		outBufPtr[i] = comb.process(inBufPtr[i], outBufPtr[i]);
 	}
 	processReady = 0;
 }
