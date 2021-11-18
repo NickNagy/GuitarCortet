@@ -19,13 +19,14 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
+#include <magna_lcd.h>
 #include "main.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "magna_dsp.h"
-#include "ILI9341.h"
 #include <stdlib.h>
+#include <memory>
 
 /* USER CODE END Includes */
 
@@ -59,6 +60,19 @@ TIM_HandleTypeDef htim7;
 SRAM_HandleTypeDef hsram1;
 
 /* USER CODE BEGIN PV */
+magna::ILI9341InitStruct lcdInitStruct = {
+	.CSPort = GPIOC,
+	.NWEPort = GPIOD,
+	.RSPort = GPIOD,
+	.ResetPort = GPIOD,
+	.CSPin = GPIO_PIN_7,
+	.NWEPin = GPIO_PIN_5,
+	.RSPin = GPIO_PIN_13,
+	.ResetPin = GPIO_PIN_2,
+	.MemSwap = false
+};
+std::unique_ptr<magna::LCD> lcd;
+
 #define BUFFER_LEN 256
 #define DATA_SIZE BUFFER_LEN>>1
 
@@ -148,11 +162,15 @@ int main(void)
   HAL_ADC_Start_DMA(&hadc3, (uint32_t*)&adcBuffer, BUFFER_LEN);
   HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t*)&dacBuffer, BUFFER_LEN, DAC_ALIGN_12B_R);
 
-  ILI9341_init();
-  ILI9341_fill(COLOR_MAGENTA);
-  ILI9341_setRotation(2);
-  ILI9341_printText("Hello World!", 0, 0, COLOR_WHITE, COLOR_MAGENTA, 1);
+  //ILI9341_init();
+  //ILI9341_fill(COLOR_MAGENTA);
+  //ILI9341_setRotation(2);
+  //ILI9341_printText("Hello World!", 0, 0, COLOR_WHITE, COLOR_MAGENTA, 1);
 
+  lcd = std::make_unique<magna::ILI9341>(lcdInitStruct);
+  lcd->fill(ILI9341_COLOR_MAGENTA);
+  lcd->setRotation(2);
+  lcd->printText("Hello, World!", 0, 0, ILI9341_COLOR_WHITE, ILI9341_COLOR_MAGENTA, 1);
   /* USER CODE END 2 */
 
 
