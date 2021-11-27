@@ -6,6 +6,7 @@
  */
 
 #include <magna_lcd.h>
+#include <cmath>
 
 //Functions defines Macros
 #define swap(a, b) { int16_t t = a; a = b; b = t; }
@@ -490,5 +491,57 @@ void magna::ILI9341::setRotation(uint8_t rotate) {
 			sendCommand(ILI9341_MEMCONTROL);
 			sendData(ILI9341_MADCTL_MY | ILI9341_MADCTL_BGR);
 			break;
+	}
+}
+
+#define DEBUG 0
+
+/**
+ * @param x: center x value of arc
+ * @param y: center y value of arc
+ * NOTE - angles are in radians
+ */
+void magna::ILI9341::drawArc(uint16_t x, uint16_t y, uint16_t radius, float startAngle, float endAngle, uint16_t color) {
+	for (float i = startAngle; i < endAngle; i += 0.05f) {
+#if DEBUG
+		uint16_t xIdx = (uint16_t)(x + radius*cos(i))
+#endif
+		drawPixel((uint16_t)(x + radius*cos(i)), (uint16_t)(y - radius*sin(i)), color);
+	}
+}
+
+/*void magna::ILI9341::fillArc(uint16_t x, uint16_t y, uint16_t minRadius, uint16_t maxRadius, float startAngle, float endAngle, uint16_t color) {
+	//for (uint16_t r = minRadius; r <= maxRadius; r++) {
+	//	drawArc(x, y, r, startAngle, endAngle, color);
+	//}
+}*/
+
+#define degToRad(deg) (deg)*0.0174532925f
+void magna::ILI9341::fillArc(uint16_t x, uint16_t y, int16_t startAngle, int16_t endAngle, uint16_t rx, uint16_t ry, uint16_t thickness, uint16_t color) {
+	// source: https://forum.arduino.cc/t/adafruit_gfx-fillarc/397741/3
+	uint8_t seg = 3; // segments are 3 degrees wide
+	uint8_t inc = 3; // draw segments every 3 degrees
+
+	uint16_t totalSegments = (endAngle-startAngle)/seg;
+
+	for (int i = startAngle; i < startAngle + totalSegments*seg; i+=inc) {
+		// calculate segment start coordinates
+		float sx0 = cos(degToRad(i-90));
+		float sy0 = sin(degToRad(i-90));
+		uint16_t x0 = sx0*(rx-thickness) + x;
+		uint16_t y0 = sy0*(ry-thickness) + y;
+		uint16_t x1 = sx0*rx + x;
+		uint16_t y1 = sy0*ry + y;
+
+		// calculate segment end coorinates
+		float sx1 = cos(degToRad(i+seg-90));
+		float sy1 = sin(degToRad(i+seg-90));
+		int16_t x2 = sx1*(rx-thickness) + x;
+		int16_t y2 = sy1*(ry-thickness) + y;
+		int16_t x3 = sx1*rx + x;
+		int16_t y3 = sy1*ry + y;
+
+		fillTriangle(x0, y0, x1, y1, x2, y2, color);
+		fillTriangle(x1, y1, x2, y2, x3, y3, color);
 	}
 }

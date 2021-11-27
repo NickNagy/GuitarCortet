@@ -19,14 +19,16 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
-#include <magna_lcd.h>
 #include "main.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "magna_dsp.h"
 #include <stdlib.h>
 #include <memory>
+
+#include "magna_lcd.h"
+#include "magna_dsp.h"
+#include "magna_ui.h"
 
 /* USER CODE END Includes */
 
@@ -162,15 +164,13 @@ int main(void)
   HAL_ADC_Start_DMA(&hadc3, (uint32_t*)&adcBuffer, BUFFER_LEN);
   HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t*)&dacBuffer, BUFFER_LEN, DAC_ALIGN_12B_R);
 
-  //ILI9341_init();
-  //ILI9341_fill(COLOR_MAGENTA);
-  //ILI9341_setRotation(2);
-  //ILI9341_printText("Hello World!", 0, 0, COLOR_WHITE, COLOR_MAGENTA, 1);
-
   lcd = std::make_unique<magna::ILI9341>(lcdInitStruct);
   lcd->fill(ILI9341_COLOR_MAGENTA);
   lcd->setRotation(2);
   lcd->printText("Hello, World!", 0, 0, ILI9341_COLOR_WHITE, ILI9341_COLOR_MAGENTA, 1);
+
+  lcd->drawArc(25, 25, 10, 0.0f, 1.57f, ILI9341_COLOR_WHITE);
+  lcd->fillArc(100, 100, 0, 45, 30, 30, 1, ILI9341_COLOR_BLUE);
   /* USER CODE END 2 */
 
 
@@ -643,12 +643,16 @@ void TIM6_IRQHandler() {
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef * htim) {
-	//HAL_GPIO_TogglePin(Timer_GPIO_GPIO_Port, Timer_GPIO_Pin);
+	if(htim->Instance == TIM7) { // LCD timer
+		// TODO
+	}
 }
 
 
+/* don't want half-complete/complete callbacks for potentiometers*/
+
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc) {
-	if (hadc->Instance == ADC3) {
+	if (hadc->Instance == ADC3) { // Guitar
 		// when ADC is processing first half of buffer, DAC is processing second half and vice versa
 		inBufPtr = &adcBuffer[0];
 		outBufPtr = &dacBuffer[DATA_SIZE];//BUFFER_LEN>>1];
@@ -657,7 +661,7 @@ void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc) {
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
-	if (hadc->Instance == ADC3) {
+	if (hadc->Instance == ADC3) { // Guitar
 		// copy second halves of buffers
 		inBufPtr = &adcBuffer[DATA_SIZE];//BUFFER_LEN>>1];
 		outBufPtr = &dacBuffer[0];

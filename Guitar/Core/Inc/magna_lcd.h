@@ -38,6 +38,8 @@ public:
 	virtual void drawPixel(uint16_t x, uint16_t y, uint16_t color) = 0;
 	virtual void drawCircle(uint16_t x0, uint16_t y0, uint16_t r, uint16_t color) = 0;
 	virtual void fillCircle(uint16_t x0, uint16_t y0, uint16_t r, uint16_t color) = 0;
+	virtual void drawArc(uint16_t x, uint16_t y, uint16_t radius, float startAngle, float endAngle, uint16_t color) = 0;
+	virtual void fillArc(uint16_t x, uint16_t y, int16_t startAngle, int16_t endAngle, uint16_t rx, uint16_t ry, uint16_t thickness, uint16_t color) = 0;
 	virtual void drawTriangle(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color) = 0;
 	virtual void fillTriangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, uint16_t color) = 0;
 	virtual void drawChar(uint16_t x, uint16_t y, unsigned char c, uint16_t color, uint16_t bg, uint8_t size) = 0;
@@ -430,6 +432,8 @@ public:
 	void fillRect(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t color) override;
 	void drawCircle(uint16_t x0, uint16_t y0, uint16_t r, uint16_t color) override;
 	void fillCircle(uint16_t x0, uint16_t y0, uint16_t r, uint16_t color) override;
+	void drawArc(uint16_t x, uint16_t y, uint16_t radius, float startAngle, float endAngle, uint16_t color) override;
+	void fillArc(uint16_t x, uint16_t y, int16_t startAngle, int16_t endAngle, uint16_t rx, uint16_t ry, uint16_t thickness, uint16_t color) override;
 	void drawTriangle(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color) override;
 	void fillTriangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, uint16_t color) override;
 	void drawChar(uint16_t x, uint16_t y, unsigned char c, uint16_t color, uint16_t bg, uint8_t size) override;
