@@ -8,6 +8,15 @@
 #include <magna_lcd.h>
 #include <cmath>
 
+#define USING_RTOS 0
+
+#if USING_RTOS
+#include "cmsis_os.h"
+#define DELAY osDelay
+#else
+#define DELAY HAL_Delay
+#endif
+
 //Functions defines Macros
 #define swap(a, b) { int16_t t = a; a = b; b = t; }
 #define pgm_read_byte(addr) (*(const unsigned char *)(addr))
@@ -79,11 +88,11 @@ void magna::ILI9341::invertRows(uint16_t y0, uint16_t y1) {
 void magna::ILI9341::init() {
 	 // Reset display:
 	 HAL_GPIO_WritePin(ResetPort, ResetPin, GPIO_PIN_RESET);
-	 HAL_Delay(10);
+	 DELAY(10);
 	 HAL_GPIO_WritePin(ResetPort, ResetPin, GPIO_PIN_SET);
 
 	 sendCommand (ILI9341_RESET); // software reset comand
-	 HAL_Delay(100);
+	 DELAY(100);
 	 sendCommand (ILI9341_DISPLAY_OFF); // display off
 	 //------------power control------------------------------
 	 sendCommand (ILI9341_POWER1); // power control
@@ -143,11 +152,11 @@ void magna::ILI9341::init() {
 	 sendData   (0x00); // clock divisor
 
 	 sendCommand (ILI9341_SLEEP_OUT); // sleep out
-	 HAL_Delay(100);
+	 DELAY(100);
 	 sendCommand (ILI9341_DISPLAY_ON); // display on
-	 HAL_Delay(100);
+	 DELAY(100);
 	 sendCommand (ILI9341_GRAM); // memory write
-	 HAL_Delay(5);
+	 DELAY(5);
 }
 
 void magna::ILI9341::drawPixel(uint16_t x, uint16_t y, uint16_t color) {

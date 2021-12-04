@@ -60,8 +60,14 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define Timer_GPIO_Pin GPIO_PIN_11
 #define Timer_GPIO_GPIO_Port GPIOB
+#define DOWN_Input_Pin GPIO_PIN_6
+#define DOWN_Input_GPIO_Port GPIOC
 #define FMC_RESET_Pin GPIO_PIN_2
 #define FMC_RESET_GPIO_Port GPIOD
+#define UP_Input_Pin GPIO_PIN_8
+#define UP_Input_GPIO_Port GPIOB
+#define ENTER_Input_Pin GPIO_PIN_9
+#define ENTER_Input_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */

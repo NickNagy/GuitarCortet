@@ -1,5 +1,6 @@
 /Debug/
 /Drivers/
+/Middlewares/
 /Core/Startup/
 /.settings/
 *.cproject

@@ -117,7 +117,7 @@ public:
 	void draw() override;
 };
 
-typedef struct UIButtonStyleSheet {
+typedef struct UIButtonStyleSheet : public UIEditableItemStyleSheet{
 	// TODO
 }UIButtonStyleSheet;
 
