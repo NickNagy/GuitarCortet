@@ -81,7 +81,7 @@ const osThreadAttr_t uiTask_attributes = {
 osEventFlagsId_t potBufferReadyFlag;
 osEventFlagsId_t audioBufferReadyFlag;
 
-#define BUFFER_LEN 256
+#define BUFFER_LEN 512
 #define HALF_BUFFER_LEN BUFFER_LEN>>1
 
 static uint16_t adcBuffer[BUFFER_LEN] = {0};
@@ -150,10 +150,10 @@ int main(void)
   MX_TIM7_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-  HAL_TIM_Base_Start_IT(&htim2);
+  //HAL_TIM_Base_Start_IT(&htim2);
   HAL_TIM_Base_Start_IT(&htim6);
-  HAL_TIM_Base_Start_IT(&htim7);
-  HAL_ADC_Start_DMA(&hadc2, (uint32_t*)&potBuffer, 6);
+  //HAL_TIM_Base_Start_IT(&htim7);
+  //HAL_ADC_Start_DMA(&hadc2, (uint32_t*)&potBuffer, 6);
   HAL_ADC_Start_DMA(&hadc3, (uint32_t*)&adcBuffer, BUFFER_LEN);
   HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t*)&dacBuffer, BUFFER_LEN, DAC_ALIGN_12B_R);
 
@@ -713,7 +713,7 @@ void StartProcessAudioBufferTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
-	  flag = osEventFlagsWait(audioBufferReadyFlag, ADC_HALF_FLAG | ADC_FULL_FLAG, osFlagsWaitAny, osWaitForever);
+	  flag = osEventFlagsWait(audioBufferReadyFlag, ADC_HALF_FLAG | ADC_FULL_FLAG, osFlagsWaitAny, osWaitForever);//0U);//osWaitForever);
 	  switch(flag) {
 	  case ADC_HALF_FLAG:
 			  adcBufferPtr = &adcBuffer[0];
@@ -731,9 +731,9 @@ void StartProcessAudioBufferTask(void *argument)
 			  }
 			  break;
 	  default:
+		  //osDelay(1);
 		  break;
 	  }
-	  osDelay(1);
   }
   /* USER CODE END 5 */
   osThreadTerminate(NULL);
