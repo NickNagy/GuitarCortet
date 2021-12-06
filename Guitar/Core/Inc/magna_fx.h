@@ -8,6 +8,8 @@
 #ifndef INC_MAGNA_FX_H_
 #define INC_MAGNA_FX_H_
 
+#define FX_DEBUG 1
+
 #include <string>
 #include <memory>
 #include <vector>
@@ -26,7 +28,7 @@ public:
 	EffectParameter(std::string stringId, float minValue, float maxValue, float increment) {
 		this->stringId = stringId;
 		currentValue = minValue;
-		division = 4096.0f/(maxValue - minValue + 1.0f); // 4096 = range of ADC values
+		division = 4096.0f/(maxValue - minValue); // 4096 = range of ADC values
 	}
 	void setValue(float rawValue) { this->currentValue = rawValue/division; }
 	float getCurrentValue() { return currentValue; }
@@ -92,7 +94,13 @@ public:
 	~VolumeDummyEffect() override {}
 
 	T process(T xn) override {
+#if FX_DEBUG
+		float v = this->params.at(0)->getCurrentValue();
+		T yn = (T)(xn*v);
+		return yn;
+#else
 		return (T)(xn*this->params.at(0)->getCurrentValue());
+#endif
 	}
 };
 
