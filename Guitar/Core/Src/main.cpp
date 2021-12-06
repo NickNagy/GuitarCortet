@@ -81,14 +81,18 @@ const osThreadAttr_t uiTask_attributes = {
 osEventFlagsId_t potBufferReadyFlag;
 osEventFlagsId_t audioBufferReadyFlag;
 
+#define NUM_POTS 6
+
 #define BUFFER_LEN 512
 #define HALF_BUFFER_LEN BUFFER_LEN>>1
+
+#define AUDIO_FLOAT_RES 4096.0f
 
 static uint16_t adcBuffer[BUFFER_LEN] = {0};
 static uint16_t dacBuffer[BUFFER_LEN] = {0};
 
 // potentiometer readings
-static volatile uint16_t potBuffer[6] = {0};
+static volatile uint16_t potBuffer[NUM_POTS] = {0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -150,10 +154,10 @@ int main(void)
   MX_TIM7_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-  //HAL_TIM_Base_Start_IT(&htim2);
+  HAL_TIM_Base_Start_IT(&htim2);
   HAL_TIM_Base_Start_IT(&htim6);
   //HAL_TIM_Base_Start_IT(&htim7);
-  //HAL_ADC_Start_DMA(&hadc2, (uint32_t*)&potBuffer, 6);
+  HAL_ADC_Start_DMA(&hadc2, (uint32_t*)&potBuffer, NUM_POTS);
   HAL_ADC_Start_DMA(&hadc3, (uint32_t*)&adcBuffer, BUFFER_LEN);
   HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t*)&dacBuffer, BUFFER_LEN, DAC_ALIGN_12B_R);
 
@@ -280,13 +284,13 @@ static void MX_ADC2_Init(void)
   hadc2.Instance = ADC2;
   hadc2.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV6;
   hadc2.Init.Resolution = ADC_RESOLUTION_12B;
-  hadc2.Init.ScanConvMode = ADC_SCAN_DISABLE;
+  hadc2.Init.ScanConvMode = ADC_SCAN_ENABLE;
   hadc2.Init.ContinuousConvMode = DISABLE;
   hadc2.Init.DiscontinuousConvMode = DISABLE;
   hadc2.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
   hadc2.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T2_TRGO;
   hadc2.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc2.Init.NbrOfConversion = 1;
+  hadc2.Init.NbrOfConversion = 6;
   hadc2.Init.DMAContinuousRequests = ENABLE;
   hadc2.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
   if (HAL_ADC_Init(&hadc2) != HAL_OK)
@@ -298,6 +302,46 @@ static void MX_ADC2_Init(void)
   sConfig.Channel = ADC_CHANNEL_3;
   sConfig.Rank = ADC_REGULAR_RANK_1;
   sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+  if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_5;
+  sConfig.Rank = ADC_REGULAR_RANK_2;
+  if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_6;
+  sConfig.Rank = ADC_REGULAR_RANK_3;
+  if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_7;
+  sConfig.Rank = ADC_REGULAR_RANK_4;
+  if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_8;
+  sConfig.Rank = ADC_REGULAR_RANK_5;
+  if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_9;
+  sConfig.Rank = ADC_REGULAR_RANK_6;
   if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -710,16 +754,26 @@ void StartProcessAudioBufferTask(void *argument)
   /* USER CODE BEGIN 5 */
   uint32_t flag;
   uint16_t * adcBufferPtr, * dacBufferPtr;
+  uint16_t potBufferLocal[NUM_POTS];
+  float volume;
   /* Infinite loop */
   for(;;)
   {
-	  flag = osEventFlagsWait(audioBufferReadyFlag, ADC_HALF_FLAG | ADC_FULL_FLAG, osFlagsWaitAny, osWaitForever);//0U);//osWaitForever);
+	  /* briefly check for potentiometer updates */
+	  flag = osEventFlagsWait(potBufferReadyFlag, POT_FLAG, osFlagsWaitAny, 0U);
+	  if (flag == POT_FLAG) {
+		  for (int i = 0; i < NUM_POTS; i++) {
+			  potBufferLocal[i] = (potBufferLocal[i] == potBuffer[i]) ? potBufferLocal[i] : potBuffer[i];
+		  }
+	  }
+	  flag = osEventFlagsWait(audioBufferReadyFlag, ADC_HALF_FLAG | ADC_FULL_FLAG, osFlagsWaitAny, osWaitForever);
+	  volume = potBufferLocal[0]/AUDIO_FLOAT_RES;
 	  switch(flag) {
 	  case ADC_HALF_FLAG:
 			  adcBufferPtr = &adcBuffer[0];
 	  	  	  dacBufferPtr = &dacBuffer[HALF_BUFFER_LEN];
 			  for (int i = 0; i < HALF_BUFFER_LEN; i++) {
-				  dacBufferPtr[i] = adcBufferPtr[i];
+				  dacBufferPtr[i] = (uint16_t)(volume*adcBufferPtr[i]);
 			  }
 	  	  	  break;
 
@@ -727,7 +781,7 @@ void StartProcessAudioBufferTask(void *argument)
 			  adcBufferPtr = &adcBuffer[HALF_BUFFER_LEN];
 	  	  	  dacBufferPtr = &dacBuffer[0];
 			  for (int i = 0; i < HALF_BUFFER_LEN; i++) {
-				  dacBufferPtr[i] = adcBufferPtr[i];
+				  dacBufferPtr[i] = (uint16_t)(volume*adcBufferPtr[i]);
 			  }
 			  break;
 	  default:
@@ -831,7 +885,7 @@ void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
-
+	return;
   /* USER CODE END Error_Handler_Debug */
 }
 

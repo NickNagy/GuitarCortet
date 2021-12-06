@@ -87,11 +87,16 @@ void NMI_Handler(void)
 /**
   * @brief This function handles Hard fault interrupt.
   */
-static void HardFault_Handler(void)
+void HardFault_Handler(void)
 {
-	while(1) {
+  /* USER CODE BEGIN HardFault_IRQn 0 */
 
-	}
+  /* USER CODE END HardFault_IRQn 0 */
+  while (1)
+  {
+    /* USER CODE BEGIN W1_HardFault_IRQn 0 */
+    /* USER CODE END W1_HardFault_IRQn 0 */
+  }
 }
 
 /**
