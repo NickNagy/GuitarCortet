@@ -29,6 +29,7 @@
 
 #include "magna_lcd.h"
 #include "magna_dsp.h"
+#include "magna_fx.h"
 #include "magna_ui.h"
 
 /* USER CODE END Includes */
@@ -702,6 +703,16 @@ static void MX_FMC_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+/* overload C++ new and delete operators to make them thread-safe */
+void* operator new (std::size_t count) {
+	return pvPortMalloc(count);
+}
+
+void operator delete(void* ptr) noexcept {
+	vPortFree(ptr);
+}
+
 extern "C" {
 
 void TIM2_IRQHandler() {
@@ -756,40 +767,42 @@ void StartProcessAudioBufferTask(void *argument)
   uint16_t * adcBufferPtr, * dacBufferPtr;
   uint16_t potBufferLocal[NUM_POTS];
   float volume;
+  magna::Effect<uint16_t> * currentEffect;
+  currentEffect = new magna::VolumeDummyEffect<uint16_t>();
   /* Infinite loop */
   for(;;)
   {
 	  /* briefly check for potentiometer updates */
 	  flag = osEventFlagsWait(potBufferReadyFlag, POT_FLAG, osFlagsWaitAny, 0U);
 	  if (flag == POT_FLAG) {
-		  for (int i = 0; i < NUM_POTS; i++) {
-			  potBufferLocal[i] = (potBufferLocal[i] == potBuffer[i]) ? potBufferLocal[i] : potBuffer[i];
-		  }
+		  //for (int i = 0; i < NUM_POTS; i++) {
+			//  potBufferLocal[i] = (potBufferLocal[i] == potBuffer[i]) ? potBufferLocal[i] : potBuffer[i];
+		  //}
+		  currentEffect->updateParameterValue(0, potBuffer[0]);
 	  }
 	  flag = osEventFlagsWait(audioBufferReadyFlag, ADC_HALF_FLAG | ADC_FULL_FLAG, osFlagsWaitAny, osWaitForever);
-	  volume = potBufferLocal[0]/AUDIO_FLOAT_RES;
+	  //volume = potBufferLocal[0]/AUDIO_FLOAT_RES;
 	  switch(flag) {
 	  case ADC_HALF_FLAG:
 			  adcBufferPtr = &adcBuffer[0];
 	  	  	  dacBufferPtr = &dacBuffer[HALF_BUFFER_LEN];
-			  for (int i = 0; i < HALF_BUFFER_LEN; i++) {
-				  dacBufferPtr[i] = (uint16_t)(volume*adcBufferPtr[i]);
-			  }
+	  		  for (int i = 0; i < HALF_BUFFER_LEN; i++) {
+	  			  dacBufferPtr[i] = currentEffect->process(adcBufferPtr[i]);//(uint16_t)(volume*adcBufferPtr[i]);
+	  		  }
 	  	  	  break;
-
 	  case ADC_FULL_FLAG:
 			  adcBufferPtr = &adcBuffer[HALF_BUFFER_LEN];
 	  	  	  dacBufferPtr = &dacBuffer[0];
-			  for (int i = 0; i < HALF_BUFFER_LEN; i++) {
-				  dacBufferPtr[i] = (uint16_t)(volume*adcBufferPtr[i]);
-			  }
+	  		  for (int i = 0; i < HALF_BUFFER_LEN; i++) {
+	  			  dacBufferPtr[i] = currentEffect->process(adcBufferPtr[i]);//(uint16_t)(volume*adcBufferPtr[i]);
+	  		  }
 			  break;
 	  default:
-		  //osDelay(1);
 		  break;
 	  }
   }
   /* USER CODE END 5 */
+  delete currentEffect;
   osThreadTerminate(NULL);
 }
 

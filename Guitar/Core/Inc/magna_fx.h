@@ -23,10 +23,10 @@ private:
 	std::string stringId;
 	float minValue, maxValue, currentValue, division;
 public:
-	EffectParameter(std::stringId, float minValue, float maxValue, float increment) {
+	EffectParameter(std::string stringId, float minValue, float maxValue, float increment) {
 		this->stringId = stringId;
 		currentValue = minValue;
-		division = 4096/(maxValue - minValue + 1); // 4096 = range of ADC values
+		division = 4096.0f/(maxValue - minValue + 1.0f); // 4096 = range of ADC values
 	}
 	void setValue(float rawValue) { this->currentValue = rawValue/division; }
 	float getCurrentValue() { return currentValue; }
@@ -44,7 +44,7 @@ class Effect {
 protected:
 	std::vector<std::unique_ptr<magna::EffectParameter>> params;
 
-	void addParameter(std::stringId, float minValue, float maxValue, float increment) {
+	void addParameter(std::string stringId, float minValue, float maxValue, float increment) {
 		params.push_back(std::make_unique<magna::EffectParameter>(stringId, minValue, maxValue, increment));
 	}
 public:
@@ -59,7 +59,7 @@ public:
 
 	float getParameterValue(uint8_t paramIdx) {
 		if (paramIdx < params.size()) {
-			return params.at(paramIdx)->getValue();
+			return params.at(paramIdx)->getCurrentValue();
 		}
 		return 0.0f;
 	}
@@ -82,14 +82,17 @@ public:
  * @brief this is a very simple example class for changing the volume
  * of the guitar out
  */
-template <class T> class VolumeDummyEffect : public Effect {
+template <class T>
+class VolumeDummyEffect : public magna::Effect<T> {
 public:
 	VolumeDummyEffect() {
-		addParameter("Volume", 0.0f, 1.0f, 0.1f);
+		this->addParameter("Volume", 0.0f, 1.0f, 0.0f);
 	}
 
+	~VolumeDummyEffect() override {}
+
 	T process(T xn) override {
-		return (T)(xn*params.at(0)->getValue());
+		return (T)(xn*this->params.at(0)->getCurrentValue());
 	}
 };
 
