@@ -157,7 +157,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim2);
   HAL_TIM_Base_Start_IT(&htim6);
-  //HAL_TIM_Base_Start_IT(&htim7);
+  HAL_TIM_Base_Start_IT(&htim7);
   HAL_ADC_Start_DMA(&hadc2, (uint32_t*)&potBuffer, NUM_POTS);
   HAL_ADC_Start_DMA(&hadc3, (uint32_t*)&adcBuffer, BUFFER_LEN);
   HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t*)&dacBuffer, BUFFER_LEN, DAC_ALIGN_12B_R);
@@ -188,10 +188,10 @@ int main(void)
 
   /* Create the thread(s) */
   /* creation of processAudioBlu */
-  processAudioBluHandle = osThreadNew(StartProcessAudioBufferTask, NULL, &processAudioBlu_attributes);
+  //processAudioBluHandle = osThreadNew(StartProcessAudioBufferTask, NULL, &processAudioBlu_attributes);
 
   /* creation of uiTask */
-  //uiTaskHandle = osThreadNew(StartUITask, NULL, &uiTask_attributes);
+  uiTaskHandle = osThreadNew(StartUITask, NULL, &uiTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -461,7 +461,7 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 9999;
+  htim2.Init.Prescaler = 19999;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim2.Init.Period = 1079;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -555,7 +555,7 @@ static void MX_TIM7_Init(void)
 
   /* USER CODE END TIM7_Init 1 */
   htim7.Instance = TIM7;
-  htim7.Init.Prescaler = 2249;
+  htim7.Init.Prescaler = 4499;//2249;
   htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim7.Init.Period = 999;
   htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -725,9 +725,10 @@ void TIM6_IRQHandler() {
 
 /* don't want half-complete/complete callbacks for potentiometers*/
 
-#define ADC_HALF_FLAG 0x00000001U
-#define ADC_FULL_FLAG 0x00000002U
-#define POT_FLAG 0x00000004U
+#define ADC_HALF_FLAG  0x00000001U
+#define ADC_FULL_FLAG  0x00000002U
+#define POT_FLAG       0x00000004U
+#define ANIMATION_FLAG 0x00000008U
 
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc) {
 	if (hadc->Instance == ADC3) { // Guitar
@@ -765,8 +766,6 @@ void StartProcessAudioBufferTask(void *argument)
   /* USER CODE BEGIN 5 */
   uint32_t flag;
   uint16_t * adcBufferPtr, * dacBufferPtr;
-  uint16_t potBufferLocal[NUM_POTS];
-  float volume;
   magna::Effect<uint16_t> * currentEffect;
   currentEffect = new magna::VolumeDummyEffect<uint16_t>();
   /* Infinite loop */
@@ -775,27 +774,15 @@ void StartProcessAudioBufferTask(void *argument)
 	  /* briefly check for potentiometer updates */
 	  flag = osEventFlagsWait(potBufferReadyFlag, POT_FLAG, osFlagsWaitAny, 0U);
 	  if (flag == POT_FLAG) {
-		  //for (int i = 0; i < NUM_POTS; i++) {
-			//  potBufferLocal[i] = (potBufferLocal[i] == potBuffer[i]) ? potBufferLocal[i] : potBuffer[i];
-		  //}
 		  currentEffect->updateParameterValue(0, potBuffer[0]);
 	  }
 	  flag = osEventFlagsWait(audioBufferReadyFlag, ADC_HALF_FLAG | ADC_FULL_FLAG, osFlagsWaitAny, osWaitForever);
-	  //volume = potBufferLocal[0]/AUDIO_FLOAT_RES;
 	  switch(flag) {
 	  case ADC_HALF_FLAG:
-			  adcBufferPtr = &adcBuffer[0];
-	  	  	  dacBufferPtr = &dacBuffer[HALF_BUFFER_LEN];
-	  		  for (int i = 0; i < HALF_BUFFER_LEN; i++) {
-	  			  dacBufferPtr[i] = currentEffect->process(adcBufferPtr[i]);//(uint16_t)(volume*adcBufferPtr[i]);
-	  		  }
+	  	  	  currentEffect->processBuffer(&adcBuffer[0], &dacBuffer[HALF_BUFFER_LEN], HALF_BUFFER_LEN);
 	  	  	  break;
 	  case ADC_FULL_FLAG:
-			  adcBufferPtr = &adcBuffer[HALF_BUFFER_LEN];
-	  	  	  dacBufferPtr = &dacBuffer[0];
-	  		  for (int i = 0; i < HALF_BUFFER_LEN; i++) {
-	  			  dacBufferPtr[i] = currentEffect->process(adcBufferPtr[i]);//(uint16_t)(volume*adcBufferPtr[i]);
-	  		  }
+	  	  	  currentEffect->processBuffer(&adcBuffer[HALF_BUFFER_LEN], &dacBuffer[0], HALF_BUFFER_LEN);
 			  break;
 	  default:
 		  break;
@@ -807,7 +794,6 @@ void StartProcessAudioBufferTask(void *argument)
 }
 
 /* USER CODE BEGIN Header_StartUITask */
-#define ANIMATION_FLAG 8
 /**
 * @brief Function implementing the uiTask thread.
 * @param argument: Not used
@@ -817,6 +803,7 @@ void StartProcessAudioBufferTask(void *argument)
 void StartUITask(void *argument)
 {
   /* USER CODE BEGIN StartUITask */
+	uint32_t flag;
 	magna::ILI9341InitStruct lcdInitStruct = {
 		.CSPort = GPIOC,
 		.NWEPort = GPIOD,
@@ -828,33 +815,26 @@ void StartUITask(void *argument)
 		.ResetPin = GPIO_PIN_2,
 		.MemSwap = false
 	};
-  uint16_t x0, y0, x1, y1, xc, yc, rx, ry;
-  x0 = 50;
-  y0 = 50;
-  x1 = 60;
-  y1 = 60;
-  xc = (x0 + x1)/2;
-  yc = (y0 + y1)/2;
-  rx = (x1 - x0)/2;
-  ry = (y1 - y0)/2;
-  int16_t startAngle = 225;
-  int16_t endAngle = 0;
-  uint16_t currentPot = 0;
-  uint16_t nextPot = 0;
-  std::unique_ptr<magna::LCD> lcd = std::make_unique<magna::ILI9341>(lcdInitStruct);
-  lcd->fill(ILI9341_COLOR_MAGENTA);
+	magna::ILI9341 lcd(lcdInitStruct);
+	magna::UIDialStyleSheet dialStyleSheet(2, ILI9341_COLOR_WHITE, ILI9341_COLOR_WHITE, ILI9341_COLOR_BLACK, ILI9341_COLOR_BLACK, ILI9341_COLOR_BLACK, ILI9341_COLOR_BLACK);
+	magna::UITextBoxStyleSheet textBoxStyleSheet(ILI9341_COLOR_WHITE, ILI9341_COLOR_BLACK, ILI9341_COLOR_WHITE, ILI9341_COLOR_BLACK);
+	magna::UITextButtonStyleSheet textButtonStyleSheet(ILI9341_COLOR_WHITE, ILI9341_COLOR_BLACK, ILI9341_COLOR_WHITE, ILI9341_COLOR_BLACK);
+	magna::EffectsUIStyleSheet volumeUIStyleSheet(dialStyleSheet, textBoxStyleSheet, textButtonStyleSheet);
+	volumeUIStyleSheet.backgroundColor = ILI9341_COLOR_BLACK;
+	magna::EffectUserInterface volumeUI(volumeUIStyleSheet, lcd, "VOLUME");
+	volumeUI.addDial("Volume", 0.0f, 1.0f);
+	volumeUI.drawInitialScreen();
   /* Infinite loop */
   for(;;)
   {
-	osThreadFlagsWait((uint32_t)ANIMATION_FLAG, osFlagsWaitAny, osWaitForever);
-	osEventFlagsWait(potBufferReadyFlag, (uint32_t)POT_FLAG, osFlagsWaitAny, osWaitForever);
-	//nextPot = potBuffer[0]; // doesn't like this
-	if (currentPot != nextPot) {
-		currentPot = nextPot;
+	flag = osEventFlagsWait(potBufferReadyFlag, POT_FLAG, osFlagsWaitAny, 10U);
+	if (flag == POT_FLAG) {
+		volumeUI.setDial(0, potBuffer[0]/4096.0f);
 	}
-	endAngle = 225 - (uint16_t)((currentPot/4096.0f)*270);
-	lcd->fillRect(x0, y0, x1, y1, ILI9341_COLOR_MAGENTA);
-	lcd->fillArc(xc, yc, startAngle, endAngle, rx, ry, 2, ILI9341_COLOR_WHITE);
+	flag = osThreadFlagsWait(ANIMATION_FLAG, osFlagsWaitAny, osWaitForever);
+	if (flag == ANIMATION_FLAG) {
+		volumeUI.refreshScreen();
+	}
 	osDelay(1);
   }
   osThreadTerminate(NULL);
@@ -878,9 +858,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
-  //if (htim->Instance == TIM7) { // animation timer
-	//  osThreadFlagsSet(uiTaskHandle, (uint32_t)ANIMATION_FLAG);
-  //}
+  if (htim->Instance == TIM7) { // animation timer
+	osThreadFlagsSet(uiTaskHandle, (uint32_t)ANIMATION_FLAG);
+  }
 #define debugTim6 0
 #if debugTim6
   if (htim->Instance == TIM6) {

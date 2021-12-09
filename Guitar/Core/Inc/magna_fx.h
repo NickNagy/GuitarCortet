@@ -25,7 +25,7 @@ private:
 	std::string stringId;
 	float minValue, maxValue, currentValue, division;
 public:
-	EffectParameter(std::string stringId, float minValue, float maxValue, float increment) {
+	EffectParameter(std::string stringId, float minValue, float maxValue) {//, float increment) {
 		this->stringId = stringId;
 		currentValue = minValue;
 		division = 4096.0f/(maxValue - minValue); // 4096 = range of ADC values
@@ -46,8 +46,8 @@ class Effect {
 protected:
 	std::vector<std::unique_ptr<magna::EffectParameter>> params;
 
-	void addParameter(std::string stringId, float minValue, float maxValue, float increment) {
-		params.push_back(std::make_unique<magna::EffectParameter>(stringId, minValue, maxValue, increment));
+	void addParameter(std::string stringId, float minValue, float maxValue) {//, float increment) {
+		params.push_back(std::make_unique<magna::EffectParameter>(stringId, minValue, maxValue));//, increment));
 	}
 public:
 	Effect() {}
@@ -70,8 +70,14 @@ public:
 	 * can be used to help initialize a UIDial (provides stringId, minValue, maxValue, etc)
 	 * should not be used frequently -- once UI is initialized, UIDial should be updated by ADC interface, not FX
 	 */
-	magna::EffectParameter getParameterCopy() {
-		// TODO
+	magna::EffectParameter getParameterCopy(uint8_t paramIdx) {
+		magna::EffectParameter(params.at(paramIdx)->getId(), params.at(paramIdx)->getMinValue(), params.at(paramIdx)->getMaxValue());
+	}
+
+	void processBuffer(T * inBufferPtr, T * outBufferPtr, uint16_t size) {
+		for (int i = 0; i < size; i++) {
+			outBufferPtr[i] = process(inBufferPtr[i]);
+		}
 	}
 
 	virtual T process(T xn) {
@@ -88,7 +94,7 @@ template <class T>
 class VolumeDummyEffect : public magna::Effect<T> {
 public:
 	VolumeDummyEffect() {
-		this->addParameter("Volume", 0.0f, 1.0f, 0.0f);
+		this->addParameter("Volume", 0.0f, 1.0f);//, 0.0f);
 	}
 
 	~VolumeDummyEffect() override {}

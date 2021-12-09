@@ -8,7 +8,7 @@
 #include <magna_lcd.h>
 #include <cmath>
 
-#define USING_RTOS 0
+#define USING_RTOS 1
 
 #if USING_RTOS
 #include "cmsis_os.h"

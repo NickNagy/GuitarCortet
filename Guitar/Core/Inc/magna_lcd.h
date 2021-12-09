@@ -31,6 +31,9 @@ public:
 	}
 	virtual ~LCD() {}
 
+	uint16_t getWidth() { return width; }
+	uint16_t getHeight() { return height; }
+
 	/* virtual functions */
 	virtual void fill(uint16_t color) = 0;
 	virtual void drawRect(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t color) = 0;
