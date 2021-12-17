@@ -79,19 +79,19 @@ struct UITextBoxStyleSheet : public UIItemStyleSheet {
 class UITextBox : public UIItem {
 protected:
 	uint16_t textSize, textXOffset, textYOffset, textColor, textBackgroundColor;
-	std::string text;
+	//std::string& text;
 public:
 #if INDEPENDENT_UI_ITEMS
-	UITextBox(UITextBoxStyleSheet& styleSheet, std::string text): UIItem(styleSheet),
+	UITextBox(UITextBoxStyleSheet& styleSheet): UIItem(styleSheet),
 #else
-	UITextBox(magna::UserInterface& owner, UITextBoxStyleSheet& styleSheet, std::string text) : UIItem(owner, styleSheet),
+	UITextBox(magna::UserInterface& owner, UITextBoxStyleSheet& styleSheet) : UIItem(owner, styleSheet),
 #endif
-		textColor(styleSheet.textColor), textBackgroundColor(styleSheet.backgroundColor), text(text)
+		textColor(styleSheet.textColor), textBackgroundColor(styleSheet.backgroundColor)//, text(text)
 	{}
 	~UITextBox() override {}
 
-	void updateText(std::string text) {
-		this->text = text;
+	void updateText(std::string& text) {
+		//this->text = text;
 	}
 
 	void draw(magna::LCD& display) override;
@@ -156,7 +156,7 @@ protected:
 	float minValue, maxValue, currentValue;
 	int16_t endAngle, lastStartAngle;
 	uint16_t dialArcThickness, dialArcColor, textColor;
-	//std::string name;
+	//std::string& name;
 	bool arcInitialized = false;
 public:
 #if INDEPENDENT_UI_ITEMS
@@ -232,7 +232,6 @@ protected:
 	magna::LCD& display;
 	std::queue<std::shared_ptr<magna::UIEditableItem>> refreshQueue;
 	uint16_t backgroundColor, width, height;
-	std::string stringId;
 	bool initialized = false;
 
 public:
@@ -310,12 +309,12 @@ protected:
 	std::vector<std::shared_ptr<magna::UIDial>> fxDials;
 	magna::UITextBox titleBox;
 public:
-	EffectUserInterface(magna::EffectUIStyleSheet& styleSheet, magna::LCD& display, std::string title) :
+	EffectUserInterface(magna::EffectUIStyleSheet& styleSheet, magna::LCD& display)://, std::string title) :
 		MenuUserInterface(styleSheet, display), dialStyleSheet(styleSheet.dialStyleSheet),
 #if INDEPENDENT_UI_ITEMS
-		titleBox(styleSheet.titleStyleSheet, title)
+		titleBox(styleSheet.titleStyleSheet)//, title)
 #else
-		titleBox(*this, styleSheet.titleStyleSheet, title)
+		titleBox(*this, styleSheet.titleStyleSheet)//, title)
 #endif
 	{}
 	~EffectUserInterface() override {}

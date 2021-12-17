@@ -821,7 +821,7 @@ void StartUITask(void *argument)
 	magna::UITextButtonStyleSheet textButtonStyleSheet(ILI9341_COLOR_WHITE, ILI9341_COLOR_BLACK, ILI9341_COLOR_WHITE, ILI9341_COLOR_BLACK);
 	magna::EffectUIStyleSheet volumeUIStyleSheet(dialStyleSheet, textBoxStyleSheet, textButtonStyleSheet);
 	volumeUIStyleSheet.backgroundColor = ILI9341_COLOR_BLACK;
-	magna::EffectUserInterface volumeUI(volumeUIStyleSheet, lcd, "VOLUME");
+	//magna::EffectUserInterface volumeUI(volumeUIStyleSheet, lcd);//, "VOLUME");
 	//volumeUI.addDial("Volume", 0.0f, 1.0f);
 #if INDEPENDENT_UI_ITEMS
 	magna::UIDial dial(dialStyleSheet, 0.0f, 1.0f);//, "Volume");
@@ -829,12 +829,12 @@ void StartUITask(void *argument)
 	magna::UIDial dial(volumeUI, dialStyleSheet, 0.0f, 1.0f);//, "Volume");
 #endif
 	dial.updatePosition(0, 160, 240, 160);
-	volumeUI.drawInitialScreen();
+	//volumeUI.drawInitialScreen();
 	dial.draw(lcd);
   /* Infinite loop */
   for(;;)
   {
-	flag = osEventFlagsWait(potBufferReadyFlag, POT_FLAG, osFlagsWaitAny, 0U);
+	flag = osEventFlagsWait(potBufferReadyFlag, POT_FLAG, osFlagsWaitAny, 10U);
 	if (flag == POT_FLAG) {
 		//volumeUI.setDial(0, potBuffer[0]/4096.0f);
 		float bufferValue = potBuffer[0]/4096.0f;
@@ -844,8 +844,9 @@ void StartUITask(void *argument)
 	}
 	flag = osThreadFlagsWait(ANIMATION_FLAG, osFlagsWaitAny, osWaitForever);
 	if (flag == ANIMATION_FLAG) {
-		volumeUI.refreshScreen();
+		//volumeUI.refreshScreen();
 		dial.refresh(lcd);
+
 	}
 	osDelay(1);
   }

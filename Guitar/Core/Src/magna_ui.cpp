@@ -16,7 +16,7 @@
 void magna::UITextBox::draw(magna::LCD& display) {
 	display.drawRect(x, y, x + width, y + height, borderColor);
 	display.fillRect(x, y, x + width, y + height, backgroundColor);
-	display.printText(text, x + textXOffset, y + textYOffset, textColor, textBackgroundColor, textSize);
+	//display.printText(text, x + textXOffset, y + textYOffset, textColor, textBackgroundColor, textSize);
 }
 
 //

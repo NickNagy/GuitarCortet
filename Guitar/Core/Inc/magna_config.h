@@ -8,7 +8,7 @@
 #ifndef INC_MAGNA_CONFIG_H_
 #define INC_MAGNA_CONFIG_H_
 
-#define INDEPENDENT_UI_ITEMS 0
+#define INDEPENDENT_UI_ITEMS 1
 
 //
 //
