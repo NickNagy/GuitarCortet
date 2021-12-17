@@ -71,7 +71,7 @@ public:
 	 * should not be used frequently -- once UI is initialized, UIDial should be updated by ADC interface, not FX
 	 */
 	magna::EffectParameter getParameterCopy(uint8_t paramIdx) {
-		magna::EffectParameter(params.at(paramIdx)->getId(), params.at(paramIdx)->getMinValue(), params.at(paramIdx)->getMaxValue());
+		return magna::EffectParameter(params.at(paramIdx)->getId(), params.at(paramIdx)->getMinValue(), params.at(paramIdx)->getMaxValue());
 	}
 
 	void processBuffer(T * inBufferPtr, T * outBufferPtr, uint16_t size) {

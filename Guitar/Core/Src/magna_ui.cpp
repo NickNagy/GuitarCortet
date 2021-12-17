@@ -46,13 +46,18 @@ void magna::UIDial::refresh(magna::LCD& display) {
 	xc = x + rx;
 	yc = y + ry;
 	startAngle = endAngle - (int16_t)(270*(currentValue/(maxValue - minValue)));
-	// if angle is larger than previous angle, color out arc with background color
-	// (larger magnitude starting angle equates to smaller arc)
-	if (lastStartAngle < startAngle) {
-		display.fillArc(xc, yc, lastStartAngle, startAngle, rx, ry, dialArcThickness, backgroundColor);
-	// o/w append to arc
-	} else if (lastStartAngle > startAngle) {
-		display.fillArc(xc, yc, startAngle, lastStartAngle, rx, ry, dialArcThickness, dialArcColor);
+	if (!arcInitialized) {
+		arcInitialized = true;
+		display.fillArc(xc, yc, startAngle, endAngle, rx, ry, dialArcThickness, dialArcColor);
+	} else {
+		// if angle is larger than previous angle, color out arc with background color
+		// (larger magnitude starting angle equates to smaller arc)
+		if (lastStartAngle < startAngle) {
+			display.fillArc(xc, yc, lastStartAngle, startAngle, rx, ry, dialArcThickness, backgroundColor);
+		// o/w append to arc
+		} else if (lastStartAngle > startAngle) {
+			display.fillArc(xc, yc, startAngle, lastStartAngle, rx, ry, dialArcThickness, dialArcColor);
+		}
 	}
 	lastStartAngle = startAngle;
 }
@@ -66,9 +71,12 @@ void magna::UIDial::refresh(magna::LCD& display) {
 void magna::EffectUserInterface::addDial(std::string stringId, float minValue, float maxValue) {
 	uint16_t dialSpaceHeight = height/2; // TODO
 	uint16_t dialSpaceY = height - height/2;
-	std::shared_ptr<magna::UIDial> dial = std::make_shared<magna::UIDial>(*this, dialStyleSheet, stringId, minValue, maxValue);
+#if INDEPENDENT_UI_ITEMS
+	std::shared_ptr<magna::UIDial> dial = std::make_shared<magna::UIDial>(dialStyleSheet, minValue, maxValue);//, stringId);
+#else
+	std::shared_ptr<magna::UIDial> dial = std::make_shared<magna::UIDial>(*this, dialStyleSheet, minValue, maxValue);//, stringId);
+#endif
 	fxDials.push_back(dial);
-#define DEBUG_ADD_DIAL 1
 #if DEBUG_ADD_DIAL
 	int numDials = fxDials.size();
 	switch(numDials) {

@@ -14,7 +14,6 @@
 #include <string>
 #include <vector>
 
-#include "magna_config.h"
 #include "magna_lcd.h"
 #include "magna_fx.h"
 
@@ -23,7 +22,7 @@ namespace magna {
 class UserInterface;
 class MenuUserInterface;
 class EffectUserInterface;
-//class App;
+class App;
 
 struct UIItemStyleSheet{
 	uint16_t borderColor, backgroundColor;
@@ -37,25 +36,21 @@ struct UIItemStyleSheet{
  */
 class UIItem {
 protected:
-#if !INDEPENDENT_UI_ITEMS
-	magna::UserInterface& owner;
-#endif
 	uint16_t x, y, width, height, borderColor, backgroundColor;
-	//std::string stringId;
+	std::string stringId;
+	magna::UserInterface& owner;
 public:
-#if INDEPENDENT_UI_ITEMS
-	UIItem(UIItemStyleSheet& styleSheet) : x(0), y(0),
-#else
-	UIItem(magna::UserInterface& owner, UIItemStyleSheet& styleSheet) : owner(owner), x(0), y(0),
-#endif
-		width(0), height(0), borderColor(styleSheet.borderColor), backgroundColor(styleSheet.backgroundColor)//, stringId("")
-	{}
+	UIItem(magna::UserInterface& owner, UIItemStyleSheet& styleSheet) : owner(owner) {//magna::LCD& display) : display(display) {
+		this->borderColor = styleSheet.borderColor;
+		this->backgroundColor = styleSheet.backgroundColor;
+		stringId = "";
+	}
 
 	virtual ~UIItem(){}
 
-	void updatePosition(uint16_t x0, uint16_t y0, uint16_t width, uint16_t height) {
-		this->x = x0;
-		this->y = y0;
+	void updatePosition(uint16_t x, uint16_t y, uint16_t width, uint16_t height) {
+		this->x = x;
+		this->y = y;
 		this->width = width;
 		this->height = height;
 	}
@@ -67,9 +62,8 @@ struct UITextBoxStyleSheet : public UIItemStyleSheet {
 	uint16_t textColor, textBackgroundColor;
 	UITextBoxStyleSheet(uint16_t textColor, uint16_t textBackgroundColor,
 			uint16_t backgroundColor, uint16_t borderColor):
-				UIItemStyleSheet(backgroundColor, borderColor),
-				textColor(textColor), textBackgroundColor(textBackgroundColor)
-				 {}
+				textColor(textColor), textBackgroundColor(textBackgroundColor),
+				UIItemStyleSheet(backgroundColor, borderColor) {}
 };
 
 /**
@@ -81,13 +75,11 @@ protected:
 	uint16_t textSize, textXOffset, textYOffset, textColor, textBackgroundColor;
 	std::string text;
 public:
-#if INDEPENDENT_UI_ITEMS
-	UITextBox(UITextBoxStyleSheet& styleSheet, std::string text): UIItem(styleSheet),
-#else
-	UITextBox(magna::UserInterface& owner, UITextBoxStyleSheet& styleSheet, std::string text) : UIItem(owner, styleSheet),
-#endif
-		textColor(styleSheet.textColor), textBackgroundColor(styleSheet.backgroundColor), text(text)
-	{}
+	UITextBox(magna::UserInterface& owner, UITextBoxStyleSheet& styleSheet, std::string text) : UIItem(owner, styleSheet) {
+		this->textColor = styleSheet.textColor;
+		this->textBackgroundColor = styleSheet.textBackgroundColor;
+		this->text = text;
+	}
 	~UITextBox() override {}
 
 	void updateText(std::string text) {
@@ -98,15 +90,14 @@ public:
 };
 
 
-struct UIEditableItemStyleSheet : public UIItemStyleSheet {
+typedef struct UIEditableItemStyleSheet : public UIItemStyleSheet {
 	uint16_t backgroundHighlightedColor, borderHighlightedColor;
 	UIEditableItemStyleSheet(uint16_t backgroundHighlightedColor,
 			uint16_t borderHighlightedColor, uint16_t backgroundColor,
-			uint16_t borderColor) : UIItemStyleSheet(backgroundColor, borderColor),
-					backgroundHighlightedColor(backgroundHighlightedColor),
-					borderHighlightedColor(borderHighlightedColor)
-					 {}
-};
+			uint16_t borderColor) : backgroundHighlightedColor(backgroundHighlightedColor),
+					borderHighlightedColor(borderHighlightedColor),
+					UIItemStyleSheet(backgroundColor, borderColor) {}
+}UIEditableItemStyleSheet;
 
 /**
  * @class UIEditableItem
@@ -117,13 +108,10 @@ protected:
 	uint16_t backgroundHighlightedColor, borderHighlightedColor;
 	bool isSelected = false;
 public:
-#if INDEPENDENT_UI_ITEMS
-	UIEditableItem(UIEditableItemStyleSheet& styleSheet) : UIItem(styleSheet),
-#else
-	UIEditableItem(magna::UserInterface& owner, UIEditableItemStyleSheet& styleSheet) : UIItem(owner, styleSheet),
-#endif
-		backgroundHighlightedColor(styleSheet.backgroundHighlightedColor), borderHighlightedColor(styleSheet.borderHighlightedColor)
-	{}
+	UIEditableItem(magna::UserInterface& owner, UIEditableItemStyleSheet& styleSheet) : UIItem(owner, styleSheet) {
+		this->backgroundHighlightedColor = styleSheet.backgroundHighlightedColor;
+		this->borderHighlightedColor = styleSheet.borderHighlightedColor;
+	}
 
 	~UIEditableItem() override {}
 
@@ -137,15 +125,17 @@ public:
 	virtual void refresh(magna::LCD& display) = 0;
 };
 
-struct UIDialStyleSheet : public UIEditableItemStyleSheet{
-	uint16_t dialArcThickness, dialArcColor, textColor;
+typedef struct UIDialStyleSheet : public UIEditableItemStyleSheet{
+	uint16_t dialArcThickness;
+	uint16_t dialArcColor;
+	uint16_t textColor;
 	UIDialStyleSheet(uint16_t dialArcThickness, uint16_t dialArcColor,
 			uint16_t textColor, uint16_t backgroundHighlightedColor, uint16_t borderHighlightedColor,
 			uint16_t backgroundColor, uint16_t borderColor) :
-			UIEditableItemStyleSheet(backgroundHighlightedColor, borderHighlightedColor, backgroundColor, borderColor),
-			dialArcThickness(dialArcThickness), dialArcColor(dialArcColor), textColor(textColor)
-			{}
-};
+			dialArcThickness(dialArcThickness), dialArcColor(dialArcColor), textColor(textColor),
+			UIEditableItemStyleSheet(backgroundHighlightedColor, borderHighlightedColor,
+					backgroundColor, borderColor) {}
+}UIDialStyleSheet;
 
 /**
  * @class UIDial
@@ -154,22 +144,17 @@ struct UIDialStyleSheet : public UIEditableItemStyleSheet{
 class UIDial : public UIEditableItem {
 protected:
 	float minValue, maxValue, currentValue;
-	int16_t endAngle, lastStartAngle;
+	int16_t lastStartAngle, endAngle;
 	uint16_t dialArcThickness, dialArcColor, textColor;
-	//std::string name;
-	bool arcInitialized = false;
+	std::string name;
 public:
-#if INDEPENDENT_UI_ITEMS
-	UIDial(UIDialStyleSheet& styleSheet, float minValue, float maxValue) : //, std::string name) :
-		UIEditableItem(styleSheet),
-#else
-	UIDial(magna::UserInterface& owner, UIDialStyleSheet& styleSheet, float minValue, float maxValue) : //, std::string name) :
-		UIEditableItem(owner, styleSheet),
-#endif
-		minValue(minValue), maxValue(maxValue), currentValue(minValue),
-		endAngle(225), lastStartAngle(endAngle), dialArcThickness(styleSheet.dialArcThickness), dialArcColor(styleSheet.dialArcColor)
-		//name(name)
-	{}
+	UIDial(magna::UserInterface& owner, UIDialStyleSheet& styleSheet, std::string name, float minValue, float maxValue) :
+		UIEditableItem(owner, styleSheet) , name(name), minValue(minValue), maxValue(maxValue),
+		dialArcThickness(styleSheet.dialArcThickness), dialArcColor(styleSheet.dialArcColor)
+	{
+		endAngle = 225;
+		lastStartAngle = endAngle;
+	};
 	~UIDial() override {}
 
 	void setValue(float newValue) {
@@ -191,11 +176,7 @@ struct UIButtonStyleSheet : public UIEditableItemStyleSheet{
  */
 class UIButton : public UIEditableItem {
 public:
-#if INDEPENDENT_UI_ITEMS
-	UIButton(UIButtonStyleSheet& styleSheet) : UIEditableItem(styleSheet) {}
-#else
 	UIButton(magna::UserInterface& owner, UIButtonStyleSheet& styleSheet) : UIEditableItem(owner, styleSheet) {}
-#endif
 	~UIButton() override {}
 
 	void draw(magna::LCD& display) override;
@@ -236,15 +217,16 @@ protected:
 	bool initialized = false;
 
 public:
-	UserInterface(UIStyleSheet& styleSheet, magna::LCD& display) : display(display),
-		 backgroundColor(styleSheet.backgroundColor), width(display.getWidth()),
-		 height(display.getHeight())
-	{}
+	UserInterface(UIStyleSheet& styleSheet, magna::LCD& display) : display(display) {
+		this->display = display;
+		this->backgroundColor = styleSheet.backgroundColor;
+		this->width = display.getWidth();
+		this->height = display.getHeight();
+	}
 	virtual ~UserInterface() {}
 
 	/* should set initialized to true */
 	virtual void drawInitialScreen() {
-		display.fill(backgroundColor);
 		initialized = true;
 	}
 
@@ -280,8 +262,12 @@ class MenuUserInterface : public UserInterface {
 protected:
 	uint8_t selectionIdx;
 public:
-	MenuUserInterface(MenuStyleSheet& styleSheet, magna::LCD& display) : UserInterface(styleSheet, display), selectionIdx(0)
-	{}
+	MenuUserInterface(MenuStyleSheet& styleSheet, magna::LCD& display) : UserInterface(styleSheet, display) {
+		selectionIdx = 0;
+		//this->buttonBorderColor = styleSheet.buttonBorderColor;
+		//this->buttonBackgroundColor = styleSheet.buttonBackgroundColor;
+		//this->buttonTextColor = styleSheet.buttonTextColor;
+	}
 
 	~MenuUserInterface() override {}
 
@@ -291,12 +277,10 @@ public:
 	//void refreshScreen() override;
 };
 
-struct EffectUIStyleSheet : public MenuStyleSheet{
+struct EffectsUIStyleSheet : public MenuStyleSheet{
 	UIDialStyleSheet& dialStyleSheet;
-	EffectUIStyleSheet(UIDialStyleSheet& dialStyleSheet, UITextBoxStyleSheet& textBoxStyleSheet,
-			UITextButtonStyleSheet& textButtonStyleSheet) : MenuStyleSheet(textBoxStyleSheet, textButtonStyleSheet),
-					dialStyleSheet(dialStyleSheet)
-					{}
+	EffectsUIStyleSheet(UIDialStyleSheet& dialStyleSheet, UITextBoxStyleSheet& textBoxStyleSheet,
+			UITextButtonStyleSheet& textButtonStyleSheet) : MenuStyleSheet(textBoxStyleSheet, textButtonStyleSheet), dialStyleSheet(dialStyleSheet){}
 };
 
 /**
@@ -308,23 +292,20 @@ protected:
 	magna::UIDialStyleSheet& dialStyleSheet;
 	// containers cannot properly store references
 	std::vector<std::shared_ptr<magna::UIDial>> fxDials;
-	magna::UITextBox titleBox;
+	magna::UITextBox title;
 public:
-	EffectUserInterface(magna::EffectUIStyleSheet& styleSheet, magna::LCD& display, std::string title) :
-		MenuUserInterface(styleSheet, display), dialStyleSheet(styleSheet.dialStyleSheet),
-#if INDEPENDENT_UI_ITEMS
-		titleBox(styleSheet.titleStyleSheet, title)
-#else
-		titleBox(*this, styleSheet.titleStyleSheet, title)
-#endif
-	{}
+	EffectUserInterface(magna::EffectsUIStyleSheet& styleSheet, magna::LCD& display, std::string title) :
+		MenuUserInterface(styleSheet, display), title(*this, styleSheet.titleStyleSheet, title), dialStyleSheet(styleSheet.dialStyleSheet)
+	{
+
+	}
 	~EffectUserInterface() override {}
 
 	void drawInitialScreen() override {
-		UserInterface::drawInitialScreen();
-		for (unsigned int i = 0; i < fxDials.size(); i++) {
+		for (int i = 0; i < fxDials.size(); i++) {
 			fxDials.at(i)->draw(display);
 		}
+		initialized = true;
 	}
 
 	void addDial(std::string stringId, float minValue, float maxValue);
@@ -346,6 +327,7 @@ public:
 	ProcessorAndUIWrapperStruct(magna::UserInterface& ui, magna::Effect<uint16_t>& fx) : ui(ui), fx(fx) {}
 	~ProcessorAndUIWrapperStruct() {}
 };
+
 class App {
 private:
 	std::stack<magna::UserInterface&> screenHistory;
@@ -356,6 +338,7 @@ private:
 public:
 	App(magna::LCD& display) : display(display) {}
 	~App() {}
+
 	void returnToPreviousScreen() {
 		if (screenHistory.size()) {
 			currentScreen->clearPendingRefresh();
@@ -363,12 +346,15 @@ public:
 			screenHistory.pop();
 		}
 	}
+
 	void goToNextScreen(magna::UserInterface& nextScreen) {
 		currentScreen->clearPendingRefresh();
 		screenHistory.push(*currentScreen);
 		currentScreen = &nextScreen;
 	}
+
 	void goToNextScreen(magna::ProcessorAndUIWrapperStruct& processorAndUI) {
+
 	}
 };*/
 
