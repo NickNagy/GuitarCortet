@@ -11,12 +11,13 @@
 #include <memory>
 #include <queue>
 #include <stack>
-#include <string>
+//#include <string>
 #include <vector>
 
 #include "magna_config.h"
 #include "magna_lcd.h"
 #include "magna_fx.h"
+#include "magna_ui_stylesheets.h"
 
 namespace magna {
 
@@ -24,12 +25,6 @@ class UserInterface;
 class MenuUserInterface;
 class EffectUserInterface;
 //class App;
-
-struct UIItemStyleSheet{
-	uint16_t borderColor, backgroundColor;
-	UIItemStyleSheet(uint16_t backgroundColor, uint16_t borderColor) :
-		borderColor(borderColor), backgroundColor(backgroundColor) {}
-};
 
 /**
  * @class UIItem
@@ -63,15 +58,6 @@ public:
 	virtual void draw(magna::LCD& display) = 0;
 };
 
-struct UITextBoxStyleSheet : public UIItemStyleSheet {
-	uint16_t textColor, textBackgroundColor;
-	UITextBoxStyleSheet(uint16_t textColor, uint16_t textBackgroundColor,
-			uint16_t backgroundColor, uint16_t borderColor):
-				UIItemStyleSheet(backgroundColor, borderColor),
-				textColor(textColor), textBackgroundColor(textBackgroundColor)
-				 {}
-};
-
 /**
  * @class UITextBox
  * @brief
@@ -95,17 +81,6 @@ public:
 	}
 
 	void draw(magna::LCD& display) override;
-};
-
-
-struct UIEditableItemStyleSheet : public UIItemStyleSheet {
-	uint16_t backgroundHighlightedColor, borderHighlightedColor;
-	UIEditableItemStyleSheet(uint16_t backgroundHighlightedColor,
-			uint16_t borderHighlightedColor, uint16_t backgroundColor,
-			uint16_t borderColor) : UIItemStyleSheet(backgroundColor, borderColor),
-					backgroundHighlightedColor(backgroundHighlightedColor),
-					borderHighlightedColor(borderHighlightedColor)
-					 {}
 };
 
 /**
@@ -135,16 +110,6 @@ public:
 
 	/*  */
 	virtual void refresh(magna::LCD& display) = 0;
-};
-
-struct UIDialStyleSheet : public UIEditableItemStyleSheet{
-	uint16_t dialArcThickness, dialArcColor, textColor;
-	UIDialStyleSheet(uint16_t dialArcThickness, uint16_t dialArcColor,
-			uint16_t textColor, uint16_t backgroundHighlightedColor, uint16_t borderHighlightedColor,
-			uint16_t backgroundColor, uint16_t borderColor) :
-			UIEditableItemStyleSheet(backgroundHighlightedColor, borderHighlightedColor, backgroundColor, borderColor),
-			dialArcThickness(dialArcThickness), dialArcColor(dialArcColor), textColor(textColor)
-			{}
 };
 
 /**
@@ -181,10 +146,6 @@ public:
 	void refresh(magna::LCD& display) override;
 };
 
-struct UIButtonStyleSheet : public UIEditableItemStyleSheet{
-	// TODO
-};
-
 /**
  * @class UIButton
  * @brief
@@ -203,13 +164,6 @@ public:
 	virtual void click() = 0;
 };
 
-
-struct UITextButtonStyleSheet : public UITextBoxStyleSheet {
-	UITextButtonStyleSheet(uint16_t textColor, uint16_t textBackgroundColor,
-			uint16_t borderColor, uint16_t backgroundColor) :
-				UITextBoxStyleSheet(textColor, textBackgroundColor, borderColor,
-						backgroundColor) {}
-};
 // TODO: check again how inheriting from two parent classes works
 /**
  * @class UITextButton
@@ -264,13 +218,6 @@ public:
 	}
 };
 
-struct MenuStyleSheet : public UIStyleSheet {
-	UITextBoxStyleSheet& titleStyleSheet;
-	UITextButtonStyleSheet& textButtonStyleSheet;
-	MenuStyleSheet(UITextBoxStyleSheet& titleStyleSheet, UITextButtonStyleSheet& textButtonStyleSheet) :
-		titleStyleSheet(titleStyleSheet), textButtonStyleSheet(textButtonStyleSheet) {}
-};
-
 /**
  * @class MenuUserInterface
  * @brief this class is a derivation of a UserInterface for defining a menu screen on the LCD
@@ -288,14 +235,6 @@ public:
 	void decrementSelection() {}
 
 	//void refreshScreen() override;
-};
-
-struct EffectUIStyleSheet : public MenuStyleSheet{
-	UIDialStyleSheet& dialStyleSheet;
-	EffectUIStyleSheet(UIDialStyleSheet& dialStyleSheet, UITextBoxStyleSheet& textBoxStyleSheet,
-			UITextButtonStyleSheet& textButtonStyleSheet) : MenuStyleSheet(textBoxStyleSheet, textButtonStyleSheet),
-					dialStyleSheet(dialStyleSheet)
-					{}
 };
 
 /**

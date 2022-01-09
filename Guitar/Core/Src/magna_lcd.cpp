@@ -8,9 +8,7 @@
 #include <magna_lcd.h>
 #include <cmath>
 
-#define USING_RTOS 1
-
-#if USING_RTOS
+#if USING_FREERTOS
 #include "cmsis_os.h"
 #define DELAY osDelay
 #else

@@ -20,6 +20,8 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "FreeRTOS.h"
+#include "task.h"
 #include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -31,7 +33,7 @@
 #include "magna_lcd.h"
 #include "magna_dsp.h"
 #include "magna_fx.h"
-#include "magna_ui.h"
+#include "magna_ui_v2.h"
 
 /* USER CODE END Includes */
 
@@ -707,11 +709,61 @@ static void MX_FMC_Init(void)
 
 /* overload C++ new and delete operators to make them thread-safe */
 void* operator new (std::size_t count) {
-	return pvPortMalloc(count);
+	void *p;
+#if USING_FREERTOS
+	if (uxTaskGetNumberOfTasks())
+		p = pvPortMalloc(count);
+	else
+		p = malloc(count);
+#if THROW_ALLOC_EXCEPTIONS
+		if (p == 0)
+			throw std::bad_alloc();
+#endif
+#else
+	p = malloc(count);
+#endif
+	return p;
 }
 
 void operator delete(void* ptr) noexcept {
-	vPortFree(ptr);
+#if USING_FREERTOS
+	if (uxTaskGetNumberOfTasks())
+		vPortFree(ptr);
+	else
+		free(ptr);
+#else
+	free(ptr);
+#endif
+	ptr = NULL;
+}
+
+void *operator new[](std::size_t count) {
+	void *p;
+#if USING_FREERTOS
+	if (uxTaskGetNumberOfTasks())
+		p = pvPortMalloc(count);
+	else
+		p = malloc(count);
+#if THROW_ALLOC_EXCEPTIONS
+		if (p == 0)
+			throw std::bad_alloc();
+#endif
+#else
+	p = malloc(count);
+#endif
+	return p;
+}
+
+void operator delete[](void * ptr) noexcept {
+#if USING_FREERTOS
+	if (uxTaskGetNumberOfTasks())
+		vPortFree(ptr);
+	else
+		free(ptr);
+#else
+	free(ptr);
+#endif
+	ptr = NULL;
 }
 
 extern "C" {
@@ -821,32 +873,37 @@ void StartUITask(void *argument)
 	magna::UITextButtonStyleSheet textButtonStyleSheet(ILI9341_COLOR_WHITE, ILI9341_COLOR_BLACK, ILI9341_COLOR_WHITE, ILI9341_COLOR_BLACK);
 	magna::EffectUIStyleSheet volumeUIStyleSheet(dialStyleSheet, textBoxStyleSheet, textButtonStyleSheet);
 	volumeUIStyleSheet.backgroundColor = ILI9341_COLOR_BLACK;
-	//magna::EffectUserInterface volumeUI(volumeUIStyleSheet, lcd);//, "VOLUME");
-	//volumeUI.addDial("Volume", 0.0f, 1.0f);
 #if INDEPENDENT_UI_ITEMS
 	magna::UIDial dial(dialStyleSheet, 0.0f, 1.0f);//, "Volume");
-#else
-	magna::UIDial dial(volumeUI, dialStyleSheet, 0.0f, 1.0f);//, "Volume");
-#endif
 	dial.updatePosition(0, 160, 240, 160);
-	//volumeUI.drawInitialScreen();
+	lcd.fill(ILI9341_COLOR_BLACK);
 	dial.draw(lcd);
+#else
+	magna::EffectUserInterface volumeUI(volumeUIStyleSheet, lcd);//, "VOLUME");
+	volumeUI.addDial("Volume", 0.0f, 1.0f);
+	volumeUI.drawInitialScreen();
+#endif
   /* Infinite loop */
   for(;;)
   {
 	flag = osEventFlagsWait(potBufferReadyFlag, POT_FLAG, osFlagsWaitAny, 10U);
 	if (flag == POT_FLAG) {
-		//volumeUI.setDial(0, potBuffer[0]/4096.0f);
+#if INDEPENDENT_UI_ITEMS
 		float bufferValue = potBuffer[0]/4096.0f;
 		if (bufferValue != dial.getValue()) {
 			dial.setValue(bufferValue);
 		}
+#else
+		volumeUI.setDial(0, potBuffer[0]/4096.0f);
+#endif
 	}
 	flag = osThreadFlagsWait(ANIMATION_FLAG, osFlagsWaitAny, osWaitForever);
 	if (flag == ANIMATION_FLAG) {
-		//volumeUI.refreshScreen();
+#if INDEPENDENT_UI_ITEMS
 		dial.refresh(lcd);
-
+#else
+		volumeUI.refreshScreen();
+#endif
 	}
 	osDelay(1);
   }
