@@ -773,9 +773,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	flag |= ANIMATION_FLAG;
 #endif
   }
+#define debugTim6 0
+#if debugTim6
   if (htim->Instance == TIM6) {
 	  HAL_GPIO_TogglePin(Timer_GPIO_GPIO_Port, Timer_GPIO_Pin);
   }
+#endif
 }
 
 /**
